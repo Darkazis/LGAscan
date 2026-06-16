@@ -13,11 +13,14 @@ from map_view import render_road_map
 
 def main() -> None:
     """Render the LGAScan prototype dashboard."""
+    from PIL import Image
     import streamlit as st
+    
+    img = Image.open("src/assets/logo.png")
 
-    st.set_page_config(page_title="LGAScan", layout="wide")
+    st.set_page_config(page_title="LGAScan", page_icon=img, layout="wide")
 
-    st.title("LGAScan")
+    st.title("LGAScan Dashboard Prototype")
     st.caption("LGA-wide road category review readiness screening")
 
     lga_summary = load_lga_summary()
@@ -38,6 +41,7 @@ def main() -> None:
     overview_cols[0].metric("Roads reviewed", len(road_results))
     overview_cols[1].metric("Evidence records", len(evidence_records))
     overview_cols[2].metric("Data gap rows", len(data_gap_summary))
+    st.divider()
 
     st.header("Interactive Road Map")
     render_road_map(road_results)
