@@ -40,8 +40,9 @@ VALID_CONFIDENCE_LEVELS = ["low", "medium", "high"]
 # - raw/nsw_road_network_categorisation/nsw_road_network_categorisation.csv
 #
 # Real processed road records should eventually include geometry so the map can
-# display the selected road. For now, geometry is kept as None so the app can be
-# developed without requiring real spatial processing immediately.
+# display the selected road. This development subset uses simplified GeoJSON
+# LineString geometry copied from the raw road categorisation GeoJSON. LGA names
+# were inferred from local ABS LGA boundaries using a representative point.
 
 SAMPLE_ROADS = [
     {
@@ -50,11 +51,15 @@ SAMPLE_ROADS = [
         "road_number": "27",
         "current_category": "State",
         "admin_class": "S",
-        "lga": "Upper Hunter",
-        "start_point": "Sample start point",
-        "end_point": "Sample end point",
+        "lga": "Singleton",
         "length_km": 0.137,
-        "geometry": None,
+        "geometry": {
+            "type": "LineString",
+            "coordinates": [
+                [151.105591, -32.617258],
+                [151.104102, -32.61734],
+            ],
+        },
     },
     {
         "road_id": "0006003,1390,C4/1",
@@ -62,11 +67,18 @@ SAMPLE_ROADS = [
         "road_number": "6003",
         "current_category": "State",
         "admin_class": "S",
-        "lga": "Central Coast",
-        "start_point": "Sample start point",
-        "end_point": "Sample end point",
+        "lga": "Newcastle",
         "length_km": 7.496,
-        "geometry": None,
+        "geometry": {
+            "type": "LineString",
+            "coordinates": [
+                [151.606641, -32.882934],
+                [151.613366, -32.872673],
+                [151.618666, -32.857835],
+                [151.634644, -32.838767],
+                [151.634013, -32.822464],
+            ],
+        },
     },
     {
         "road_id": "0000061,0174,A2/1",
@@ -74,23 +86,80 @@ SAMPLE_ROADS = [
         "road_number": "61",
         "current_category": "State",
         "admin_class": "S",
-        "lga": "Orange",
-        "start_point": "Sample start point",
-        "end_point": "Sample end point",
+        "lga": "Parkes",
         "length_km": 1.740,
-        "geometry": None,
+        "geometry": {
+            "type": "LineString",
+            "coordinates": [
+                [148.170421, -33.141542],
+                [148.158465, -33.144823],
+                [148.153735, -33.14225],
+            ],
+        },
     },
     {
-        "road_id": "0000011,0168,C1",
-        "road_name": "OXLEY",
-        "road_number": "11",
-        "current_category": "State",
-        "admin_class": "S",
-        "lga": "Port Macquarie-Hastings",
-        "start_point": "Sample start point",
-        "end_point": "Sample end point",
-        "length_km": 0.243,
-        "geometry": None,
+        "road_id": "0000332,0030,A3",
+        "road_name": "BEROWRA WATERS",
+        "road_number": "332",
+        "current_category": "Regional",
+        "admin_class": "R",
+        "lga": "Hornsby",
+        "length_km": 4.017,
+        "geometry": {
+            "type": "LineString",
+            "coordinates": [
+                [151.138837, -33.614362],
+                [151.135195, -33.612547],
+                [151.13432, -33.608163],
+                [151.131393, -33.608339],
+                [151.126512, -33.603713],
+                [151.130735, -33.603826],
+                [151.126454, -33.599719],
+                [151.126034, -33.597177],
+                [151.12588, -33.599573],
+                [151.12676, -33.600784],
+                [151.124877, -33.600534],
+            ],
+        },
+    },
+    {
+        "road_id": "2350010,2360,A3",
+        "road_name": "MACLEAY VALLEY",
+        "road_number": "2350010",
+        "current_category": "Regional",
+        "admin_class": "R",
+        "lga": "Kempsey",
+        "length_km": 11.618,
+        "geometry": {
+            "type": "LineString",
+            "coordinates": [
+                [152.94693, -30.944689],
+                [152.940615, -30.931717],
+                [152.942864, -30.924822],
+                [152.941002, -30.918369],
+                [152.94464, -30.898832],
+                [152.937876, -30.887833],
+                [152.937801, -30.872539],
+                [152.928572, -30.866779],
+                [152.914304, -30.8532],
+            ],
+        },
+    },
+    {
+        "road_id": "0000584,0028,A1",
+        "road_name": "ROYALLA",
+        "road_number": "584",
+        "current_category": "Regional",
+        "admin_class": "R",
+        "lga": "Queanbeyan-Palerang",
+        "length_km": 0.373,
+        "geometry": {
+            "type": "LineString",
+            "coordinates": [
+                [149.233981, -35.390573],
+                [149.234895, -35.387344],
+            ],
+        },
     },
 ]
 
