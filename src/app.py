@@ -1,68 +1,69 @@
-"""Starter Streamlit dashboard for LGAScan."""
+"""Main Streamlit entry point for the LGAScan prototype."""
 
-from data_loader import (
-    load_data_gap_summary,
-    load_evidence_records,
-    load_lga_summary,
-    load_road_results,
+from mockdata.sample_data import (
+    SAMPLE_CRITERIA_RESULTS,
+    SAMPLE_ROADS,
+    SAMPLE_SELECTED_ROAD,
+    get_sample_criteria_results_by_road_id,
+    get_sample_summary_result_by_road_id,
 )
-from evidence_panel import render_evidence_panel
-from export_tools import render_export_tools
-from map_view import render_road_map
+from ui.app_shell import configure_page, render_dashboard_header, render_placeholder_section
+from ui.road_selector import render_road_selector
+from ui.selected_road_panel import render_selected_road_summary
 
 
 def main() -> None:
     """Render the LGAScan prototype dashboard."""
-    from PIL import Image
     import streamlit as st
-    
-    img = Image.open("src/assets/logo.png")
 
-    st.set_page_config(page_title="LGAScan", page_icon=img, layout="wide")
+    configure_page()
+    render_dashboard_header()
 
-    st.title("LGAScan Dashboard Prototype")
-    st.caption("LGA-wide road category review readiness screening")
-
-    lga_summary = load_lga_summary()
-    road_results = load_road_results()
-    evidence_records = load_evidence_records()
-    data_gap_summary = load_data_gap_summary()
-
-    with st.sidebar:
-        st.header("Case Study")
-        selected_lga = st.selectbox(
-            "LGA",
-            options=[lga_summary.get("lga_name", "Example LGA")],
-        )
-        st.write(f"Selected: {selected_lga}")
+    selected_road = render_road_selector(SAMPLE_ROADS, SAMPLE_SELECTED_ROAD)
+    selected_road_id = selected_road["road_id"] if selected_road else None
+    selected_summary = (
+        get_sample_summary_result_by_road_id(selected_road_id)
+        if selected_road_id
+        else None
+    )
+    selected_criteria = (
+        get_sample_criteria_results_by_road_id(selected_road_id)
+        if selected_road_id
+        else []
+    )
 
     st.header("LGA Overview")
     overview_cols = st.columns(3)
-    overview_cols[0].metric("Roads reviewed", len(road_results))
-    overview_cols[1].metric("Evidence records", len(evidence_records))
-    overview_cols[2].metric("Data gap rows", len(data_gap_summary))
+    overview_cols[0].metric("Mock roads", len(SAMPLE_ROADS))
+    overview_cols[1].metric("Mock criteria rows", len(SAMPLE_CRITERIA_RESULTS))
+    overview_cols[2].metric("Selected road criteria", len(selected_criteria))
     st.divider()
 
-    st.header("Interactive Road Map")
-    render_road_map(road_results)
+    render_selected_road_summary(selected_road, selected_summary)
 
-    st.header("Road Ranking Table")
-    if road_results.empty:
-        st.info("No processed road ranking data found yet.")
+    render_placeholder_section(
+        "Interactive Road Map",
+        "Map logic is not implemented yet. This section will later display "
+        "prepared GeoJSON for the selected road.",
+    )
+
+    st.header("Criteria Results")
+    if selected_criteria:
+        st.dataframe(selected_criteria, use_container_width=True)
     else:
-        st.dataframe(road_results, use_container_width=True)
+        st.info("No mock criteria rows are available for the selected road.")
 
-    st.header("Road Evidence Panel")
-    render_evidence_panel(evidence_records)
+    render_placeholder_section(
+        "Screening Summary",
+        "Summary display is using mock data only. No criteria scoring is "
+        "implemented in the dashboard.",
+    )
 
-    st.header("Data Gap Summary")
-    if data_gap_summary.empty:
-        st.info("No data gap summary found yet.")
-    else:
-        st.dataframe(data_gap_summary, use_container_width=True)
-
-    st.header("Export Tools")
-    render_export_tools(road_results, data_gap_summary)
+    render_placeholder_section(
+        "Data Gaps And Manual Review",
+        "Data gap and manual review details will be connected once processed "
+        "outputs are available.",
+    )
 
 
 if __name__ == "__main__":
