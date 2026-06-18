@@ -5,7 +5,11 @@ import streamlit as st
 from components.result_display import display_results
 from engine.criteria_engine import evaluate_road
 from engine.summary_verdict import create_summary_verdict
-from mockdata.sample_data import SAMPLE_ROADS, SAMPLE_SUPPORTING_DATA
+from mockdata.sample_data import (
+    SAMPLE_ROADS,
+    SAMPLE_SELECTED_ROAD,
+    SAMPLE_SUPPORTING_DATA,
+)
 from ui.road_selector import render_road_selector
 
 
@@ -34,7 +38,8 @@ def main():
         "recategorisation criteria."
     )
 
-    selected_road = render_road_selector(SAMPLE_ROADS)
+    selection_state = render_road_selector(SAMPLE_ROADS, SAMPLE_SELECTED_ROAD)
+    selected_road = selection_state["selected_road"]
 
     if selected_road is None:
         st.info("Select a road to view criteria results.")
