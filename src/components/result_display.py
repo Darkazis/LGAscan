@@ -1,34 +1,98 @@
+import pandas as pd
 import streamlit as st
 
 
 def display_results(criteria_results, summary_verdict):
-    st.subheader("Summary Verdict")
+    status_labels = {
+        "met": "Met",
+        "not_met": "Not met",
+        "unknown": "Unknown",
+        "manual_review": "Manual review",
+    }
 
-    st.info(summary_verdict["summary_verdict"])
+    st.markdown("### Summary verdict")
+    st.info(summary_verdict["summary_verdict"], icon="ℹ️")
 
-    st.write(f'Criteria met: {summary_verdict["met_count"]}')
-    st.write(f'Not met: {summary_verdict["not_met_count"]}')
-    st.write(f'Unknown: {summary_verdict["unknown_count"]}')
-    st.write(f'Manual review: {summary_verdict["manual_review_count"]}')
+    summary_cols = st.columns(4)
+    summary_cols[0].metric(
+        "Met",
+        summary_verdict["met_count"],
+        help="Criteria with sufficient evidence to be marked as met.",
+    )
+    summary_cols[1].metric(
+        "Not met",
+        summary_verdict["not_met_count"],
+        help="Criteria where the available evidence does not meet the requirement.",
+    )
+    summary_cols[2].metric(
+        "Unknown",
+        summary_verdict["unknown_count"],
+        help="Criteria without enough available evidence for an assessment.",
+    )
+    summary_cols[3].metric(
+        "Manual review",
+        summary_verdict["manual_review_count"],
+        help="Criteria that require a person to review the available evidence.",
+    )
 
-    st.subheader("Criteria Results")
+    st.markdown("### Criteria results")
 
-    for result in criteria_results:
-        status = result["status"]
+    filter_cols = st.columns([2, 1])
+    status_options = list(status_labels)
+    selected_statuses = filter_cols[0].multiselect(
+        "Filter by status",
+        options=status_options,
+        default=status_options,
+        format_func=lambda status: status_labels[status],
+    )
+    mandatory_only = filter_cols[1].toggle(
+        "Mandatory criteria only",
+        value=False,
+    )
 
-        if status == "met":
-            st.success(f'{result["criteria_id"]}: {result["criteria_name"]}')
-        elif status == "not_met":
-            st.error(f'{result["criteria_id"]}: {result["criteria_name"]}')
-        elif status == "unknown":
-            st.warning(f'{result["criteria_id"]}: {result["criteria_name"]}')
-        elif status == "manual_review":
-            st.warning(f'{result["criteria_id"]}: {result["criteria_name"]}')
+    visible_results = [
+        result
+        for result in criteria_results
+        if result["status"] in selected_statuses
+        and (not mandatory_only or result["is_mandatory"])
+    ]
 
-        with st.expander("View evidence"):
-            st.write(f'**Status:** {result["status"]}')
-            st.write(f'**Target category:** {result["target_category"]}')
-            st.write(f'**Mandatory:** {result["is_mandatory"]}')
-            st.write(f'**Evidence:** {result["evidence"]}')
-            st.write(f'**Data source:** {result["data_source"]}')
-            st.write(f'**Notes:** {result["notes"]}')
+    st.caption(
+        f"Showing {len(visible_results)} of {len(criteria_results)} criteria. "
+        "Use the table controls to search, resize columns, or download CSV."
+    )
+
+    table_rows = [
+        {
+            "Criteria ID": result["criteria_id"],
+            "Criterion": result["criteria_name"],
+            "Status": status_labels.get(result["status"], result["status"]),
+            "Target category": result["target_category"],
+            "Mandatory": result["is_mandatory"],
+            "Evidence": result["evidence"],
+            "Data source": result["data_source"],
+            "Notes": result["notes"],
+        }
+        for result in visible_results
+    ]
+
+    if not table_rows:
+        st.warning("No criteria match the selected table filters.")
+        return
+
+    st.dataframe(
+        pd.DataFrame(table_rows),
+        hide_index=True,
+        use_container_width=True,
+        height=min(680, 38 + (len(table_rows) * 35)),
+        column_config={
+            "Criteria ID": st.column_config.TextColumn(width="small"),
+            "Criterion": st.column_config.TextColumn(width="large"),
+            "Status": st.column_config.TextColumn(width="small"),
+            "Target category": st.column_config.TextColumn(width="small"),
+            "Mandatory": st.column_config.CheckboxColumn(width="small"),
+            "Evidence": st.column_config.TextColumn(width="large"),
+            "Data source": st.column_config.TextColumn(width="medium"),
+            "Notes": st.column_config.TextColumn(width="large"),
+        },
+    )
