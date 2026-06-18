@@ -33,6 +33,26 @@ def _filter_options(roads: list[dict[str, Any]], field_name: str) -> list[str]:
     return [ALL_OPTION] + values
 
 
+def _split_lga_values(road: dict[str, Any]) -> list[str]:
+    """Return individual LGA names from a road's LGA field."""
+    lga_value = _field_value(road, "lga")
+    if lga_value == NOT_AVAILABLE:
+        return [NOT_AVAILABLE]
+    return [lga.strip() for lga in lga_value.split(",") if lga.strip()]
+
+
+def _lga_filter_options(roads: list[dict[str, Any]]) -> list[str]:
+    """Return sidebar LGA options with multi-LGA roads split into councils."""
+    values = sorted(
+        {
+            lga
+            for road in roads
+            for lga in _split_lga_values(road)
+        }
+    )
+    return [ALL_OPTION] + values
+
+
 def _apply_filter(
     roads: list[dict[str, Any]],
     field_name: str,
@@ -45,6 +65,20 @@ def _apply_filter(
         road
         for road in roads
         if _field_value(road, field_name) == selected_value
+    ]
+
+
+def _apply_lga_filter(
+    roads: list[dict[str, Any]],
+    selected_lga: str,
+) -> list[dict[str, Any]]:
+    """Filter roads by membership in an individual LGA."""
+    if selected_lga == ALL_OPTION:
+        return roads
+    return [
+        road
+        for road in roads
+        if selected_lga in _split_lga_values(road)
     ]
 
 
@@ -109,9 +143,9 @@ def render_road_selector(
     if _has_field(roads, "lga"):
         selected_lga = st.sidebar.selectbox(
             "Filter by LGA",
-            options=_filter_options(roads, "lga"),
+            options=_lga_filter_options(roads),
         )
-        filtered_roads = _apply_filter(filtered_roads, "lga", selected_lga)
+        filtered_roads = _apply_lga_filter(filtered_roads, selected_lga)
         lga_scoped_roads = filtered_roads
 
     if _has_field(roads, "current_category"):

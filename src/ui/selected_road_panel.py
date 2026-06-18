@@ -30,6 +30,14 @@ def _length_value(road: dict[str, Any]) -> str:
         return str(value)
 
 
+def _lga_values(road: dict[str, Any]) -> list[str]:
+    """Return individual LGA names for the selected road."""
+    lga_value = _display_value(road, "lga")
+    if lga_value == NOT_AVAILABLE:
+        return []
+    return [lga.strip() for lga in lga_value.split(",") if lga.strip()]
+
+
 def render_selected_road_summary(
     road: dict[str, Any] | None,
     summary: dict[str, Any] | None = None,
@@ -61,6 +69,16 @@ def render_selected_road_summary(
     st.markdown(f"**Road Number:** {_display_value(road, 'road_number')}")
     st.markdown(f"**Start Point:** {_display_value(road, 'start_point')}")
     st.markdown(f"**End Point:** {_display_value(road, 'end_point')}")
+
+    lga_values = _lga_values(road)
+    st.markdown("**Crosses Multiple LGAs**")
+    if len(lga_values) > 1:
+        st.write(f"Yes. This road appears in {len(lga_values)} LGAs:")
+        st.write(", ".join(lga_values))
+    elif len(lga_values) == 1:
+        st.write(f"No. This road appears in {lga_values[0]}.")
+    else:
+        st.write("Not available.")
 
     if summary:
         st.markdown("**Summary**")
