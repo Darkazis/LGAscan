@@ -2,28 +2,35 @@
 
 import streamlit as st
 
-from mockdata.sample_data import SAMPLE_SELECTED_ROAD, SAMPLE_SUPPORTING_DATA
+from mockdata.sample_data import SAMPLE_SELECTED_ROAD, SAMPLE_SUPPORTING_DATA, SAMPLE_ROADS
+from ui.road_selector import render_road_selector
+from ui.selected_road_panel import render_selected_road_summary
+
 from engine.criteria_engine import evaluate_road
 from engine.summary_verdict import create_summary_verdict
 from components.result_display import display_results
 
 
-def main() -> None:
+def main():
     st.title("Criteria Results")
-    st.caption("Mock criteria evaluation output for the selected road")
 
-    st.subheader("Selected Road")
-    st.write(SAMPLE_SELECTED_ROAD["road_name"])
-    st.json(SAMPLE_SELECTED_ROAD)
+    selected_road = render_road_selector(SAMPLE_ROADS)
+
+    if selected_road is None:
+        st.info("Select a road to view criteria results.")
+        return
 
     criteria_results = evaluate_road(
-        SAMPLE_SELECTED_ROAD,
+        selected_road,
         SAMPLE_SUPPORTING_DATA,
     )
 
     summary_verdict = create_summary_verdict(criteria_results)
 
-    display_results(criteria_results, summary_verdict)
+    display_results(
+        criteria_results,
+        summary_verdict,
+    )
 
 
 if __name__ == "__main__":
