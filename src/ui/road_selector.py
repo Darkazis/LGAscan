@@ -11,6 +11,9 @@ ALL_OPTION = "All"
 NOT_AVAILABLE = "Not available"
 
 
+RoadSelectionState = dict[str, Any]
+
+
 def _field_value(road: dict[str, Any], field_name: str) -> str:
     """Return a safe display value for a road field."""
     value = road.get(field_name)
@@ -83,15 +86,25 @@ def _road_options(roads: list[dict[str, Any]]) -> list[tuple[str, dict[str, Any]
 def render_road_selector(
     roads: list[dict[str, Any]],
     default_road: dict[str, Any] | None = None,
-) -> dict[str, Any] | None:
-    """Render sidebar road controls and return the selected road."""
+) -> RoadSelectionState:
+    """Render sidebar road controls and return road selection state."""
     st.sidebar.header("Road Selection")
 
     if not roads:
         st.sidebar.warning("No mock roads are available.")
-        return None
+        return {
+            "selected_road": None,
+            "filtered_roads": [],
+            "lga_scoped_roads": [],
+            "selected_lga": ALL_OPTION,
+            "selected_category": ALL_OPTION,
+            "road_selection_changed": False,
+        }
 
     filtered_roads = roads
+    lga_scoped_roads = roads
+    selected_lga = ALL_OPTION
+    selected_category = ALL_OPTION
 
     if _has_field(roads, "lga"):
         selected_lga = st.sidebar.selectbox(
@@ -99,6 +112,7 @@ def render_road_selector(
             options=_filter_options(roads, "lga"),
         )
         filtered_roads = _apply_filter(filtered_roads, "lga", selected_lga)
+        lga_scoped_roads = filtered_roads
 
     if _has_field(roads, "current_category"):
         selected_category = st.sidebar.selectbox(
@@ -111,25 +125,61 @@ def render_road_selector(
             selected_category,
         )
 
+    filter_signature = (selected_lga, selected_category)
+    previous_filter_signature = st.session_state.get("previous_filter_signature")
+    filters_changed = (
+        previous_filter_signature is not None
+        and previous_filter_signature != filter_signature
+    )
+    st.session_state["previous_filter_signature"] = filter_signature
+
     st.sidebar.caption(
         f"{len(filtered_roads)} of {len(roads)} mock roads match the filters."
     )
 
     if not filtered_roads:
         st.sidebar.warning("No mock roads match the selected filters.")
-        return None
+        return {
+            "selected_road": None,
+            "filtered_roads": filtered_roads,
+            "lga_scoped_roads": lga_scoped_roads,
+            "selected_lga": selected_lga,
+            "selected_category": selected_category,
+            "road_selection_changed": False,
+        }
 
     road_options = _road_options(filtered_roads)
+    labels = [label for label, _road in road_options]
+    roads_by_label = {label: road for label, road in road_options}
     default_index = 0
     if default_road in filtered_roads:
         default_index = filtered_roads.index(default_road)
+    default_label = labels[default_index]
+
+    if st.session_state.get("selected_road_label") not in labels:
+        st.session_state["selected_road_label"] = default_label
+        st.session_state["previous_road_selector_label"] = default_label
 
     selected_option = st.sidebar.selectbox(
         "Select a mock road",
-        options=road_options,
-        index=default_index,
-        format_func=lambda option: option[0],
+        options=labels,
+        key="selected_road_label",
     )
+    selected_road = roads_by_label[selected_option]
+    previous_option = st.session_state.get("previous_road_selector_label")
+    road_selection_changed = (
+        previous_option is not None and previous_option != selected_option
+    )
+    if filters_changed:
+        road_selection_changed = False
+    st.session_state["previous_road_selector_label"] = selected_option
 
     st.sidebar.caption("Selection is driven by src/mockdata/sample_data.py.")
-    return selected_option[1]
+    return {
+        "selected_road": selected_road,
+        "filtered_roads": filtered_roads,
+        "lga_scoped_roads": lga_scoped_roads,
+        "selected_lga": selected_lga,
+        "selected_category": selected_category,
+        "road_selection_changed": road_selection_changed,
+    }
