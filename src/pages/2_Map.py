@@ -1,4 +1,5 @@
 import streamlit as st
+import ipywidgets as widgets
 import leafmap.maplibregl as leafmap
 
 from PIL import Image
@@ -11,9 +12,9 @@ st.title("🌏 Map View")
 
 # Map Rendering
 m = leafmap.Map(
-    center=[148, -33],
-    zoom=5,
-    style="streets")
-
+        center=[148, -33],
+        zoom=5,
+        style="streets",
+    )
 
 m.to_streamlit(height=550)
