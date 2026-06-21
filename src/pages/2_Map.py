@@ -15,7 +15,7 @@ st.title("🌏 Map View")
 
 # DATA INGESTION
 sys.path.append(str(Path(__file__).resolve().parents[2]))
-# Only import the road geometries, leaving the evidence behind
+
 from src.mockdata.sample_data import SAMPLE_ROADS
 
 # SIDEBAR
@@ -28,7 +28,7 @@ for road in SAMPLE_ROADS:
         all_lgas.add(lga.strip())
 sorted_lgas = ["All Regions"] + sorted(list(all_lgas))
 
-selected_lga = st.sidebar.selectbox("1. Filter by LGA", sorted_lgas)
+selected_lga = st.sidebar.selectbox("Filter by LGA", sorted_lgas)
 
 # 2. Filter the road list based on the LGA selection
 if selected_lga == "All Regions":
@@ -38,7 +38,7 @@ else:
 
 # 3. Present the narrowed-down road list in the second dropdown
 road_names = ["🗺️ View Entire NSW"] + [road['road_name'] for road in filtered_roads]
-selected_name = st.sidebar.selectbox("2. Select a View", road_names)
+selected_name = st.sidebar.selectbox("Select a View", road_names)
 
 # PYDECK CAMERA (ViewState) & LAYER LOGIC
 # Default Camera
@@ -71,7 +71,7 @@ if selected_name != "🗺️ View Entire NSW":
         pickable=True,
         stroked=True,
         filled=False,
-        get_line_color=[57, 255, 20], # Neon Green
+        get_line_color=[57, 255, 20],
         get_line_width=15,
         line_width_min_pixels=4, 
     )
