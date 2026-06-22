@@ -11,7 +11,10 @@ from streamlit_folium import st_folium
 # ==========================================
 try:
     img = Image.open("src/assets/logo.png")
-    st.set_page_config(page_title="LGAScan Map", page_icon=img, layout="wide")
+    st.set_page_config(page_title="LGAScan Map",
+                       page_icon=img,
+                       layout="wide"
+                       )
 except FileNotFoundError:
     st.set_page_config(page_title="LGAScan Map", layout="wide")
 
@@ -24,7 +27,7 @@ sys.path.append(str(Path(__file__).resolve().parents[2]))
 from src.mockdata.sample_data import SAMPLE_ROADS
 
 # ==========================================
-# 3. ROUTING ENGINE (The Brains)
+# 3. ROUTING ENGINE
 # ==========================================
 def get_road_curve(coord_a, coord_b):
     """Pings the OSRM routing server to get the exact road curvature."""
@@ -37,15 +40,21 @@ def get_road_curve(coord_a, coord_b):
         if "routes" in response and len(response["routes"]) > 0:
             return response["routes"][0]["geometry"]
     except Exception:
-        st.error("Routing engine offline or unreachable.")
+        pass
     return None
 
 # ==========================================
-# 4. SIDEBAR LOGIC (The Camera Controller)
+# 4. SIDEBAR CONTROLS
 # ==========================================
 st.sidebar.header("Map Settings")
 
-# Extract unique LGAs
+# Feature: Map Style Selector
+map_style = st.sidebar.selectbox(
+    "Map Theme",
+    ["CartoDB positron", "CartoDB dark_matter", "OpenStreetMap"]
+)
+
+# Feature: LGA and Road Search
 all_lgas = set()
 for road in SAMPLE_ROADS:
     for lga in road['lga'].split(','):
@@ -54,45 +63,62 @@ sorted_lgas = ["All Regions"] + sorted(list(all_lgas))
 
 selected_lga = st.sidebar.selectbox("Filter by LGA", sorted_lgas)
 
-# Filter the road list based on the LGA selection
 if selected_lga == "All Regions":
     filtered_roads = SAMPLE_ROADS
 else:
     filtered_roads = [r for r in SAMPLE_ROADS if selected_lga in r['lga']]
 
 road_names = ["🗺️ View Entire NSW"] + [road['road_name'] for road in filtered_roads]
-selected_name = st.sidebar.selectbox("Select a View", road_names)
+selected_name = st.sidebar.selectbox("Search/Select a Road", road_names)
+
+# Feature: Clear Map Selections Button
+st.sidebar.markdown("---") # Adds a clean visual divider line
+if st.sidebar.button("🗑️ Clear Map Selections"):
+    st.session_state.map_clicks = []
+    st.rerun() # Instantly reloads the page to clear the map
 
 # ==========================================
 # 5. MAP STATE & RENDER LOGIC
 # ==========================================
-# Default Camera (Zoomed out over NSW)
 lat, lon = -32.5, 148.0
-zoom_level = 5
+zoom_level = 6
+min_zoom = 6
 
-# If a user selects a road in the sidebar, instantly zoom the camera to it
-if selected_name != "🗺️ View Entire NSW":
-    selected_road_data = next(r for r in filtered_roads if r['road_name'] == selected_name)
-    # Grab the first coordinate of the road to center the camera
-    first_coord = selected_road_data['segments'][0]['geometry']['coordinates'][0]
-    lon, lat = first_coord[0], first_coord[1]
-    zoom_level = 14  # Zoom in close so it's easy to click
-
-st.markdown(f"**Current Area:** {selected_name}")
-st.info("🖱️ **Interaction:** Click two points on the map below to snap to the physical road.")
-
-# Initialize our click memory
+# Initialize click memory
 if "map_clicks" not in st.session_state:
     st.session_state.map_clicks = []
 
-# Build the Base Map
-m = folium.Map(location=[lat, lon], zoom_start=zoom_level)
+# Check if a specific road was searched in the dropdown
+selected_road_data = None
+if selected_name != "🗺️ View Entire NSW":
+    selected_road_data = next(r for r in filtered_roads if r['road_name'] == selected_name)
+    first_coord = selected_road_data['segments'][0]['geometry']['coordinates'][0]
+    lon, lat = first_coord[0], first_coord[1]
+    zoom_level = 14
 
-# Draw pins for any existing clicks
+st.markdown(f"**Current Area:** {selected_name}")
+
+# Build the Base Map applying the user's chosen Style
+m = folium.Map(location=[lat, lon],
+               zoom_start=zoom_level,
+               tiles=map_style,
+               attributionControl=False,
+               min_zoom=min_zoom
+               )
+
+# Feature 2 (Continued): Actually draw the searched road from the mock database
+if selected_road_data:
+    folium.GeoJson(
+        selected_road_data['geometry'],
+        name="Searched Road",
+        style_function=lambda x: {'color': '#39FF14', 'weight': 6, 'opacity': 0.8} # High-vis Neon Green
+    ).add_to(m)
+
+# Draw pins for any existing manual clicks
 for i, coord in enumerate(st.session_state.map_clicks):
     folium.Marker(coord, tooltip=f"Point {i+1}", icon=folium.Icon(color="blue")).add_to(m)
 
-# The Magic: If we have 2 points, draw the curved route
+# Draw the dynamic routing curve if 2 points are manually clicked
 if len(st.session_state.map_clicks) == 2:
     point_a = st.session_state.map_clicks[0]
     point_b = st.session_state.map_clicks[1]
@@ -103,23 +129,22 @@ if len(st.session_state.map_clicks) == 2:
     if curve_geojson:
         folium.GeoJson(
             curve_geojson, 
-            name="Selected Road Segment",
-            style_function=lambda x: {'color': '#0078D7', 'weight': 6, 'opacity': 0.85}
+            name="Selected Route",
+            style_function=lambda x: {'color': '#0078D7', 'weight': 6, 'opacity': 0.85} # Solid Blue
         ).add_to(m)
 
-# Render the map to Streamlit, passing back browser events
-map_data = st_folium(m, use_container_width=True, height=650)
+# Render map to Streamlit
+map_data = st_folium(m, use_container_width=True, height=530)
 
-# Process brand new clicks from the browser
+# Process new browser clicks
 if map_data and map_data.get("last_clicked"):
     click_lat = map_data["last_clicked"]["lat"]
     click_lon = map_data["last_clicked"]["lng"]
     new_coord = (click_lat, click_lon)
     
-    # If they click a 3rd time, clear the board and start a new route
     if len(st.session_state.map_clicks) >= 2:
         st.session_state.map_clicks = [new_coord]
     elif new_coord not in st.session_state.map_clicks:
         st.session_state.map_clicks.append(new_coord)
         
-    st.rerun()  # Force Streamlit to refresh and draw the new point
+    st.rerun()
