@@ -4,31 +4,12 @@ import streamlit as st
 
 from components.result_display import display_results
 from engine.criteria_engine import evaluate_road
-from engine.summary_verdict import create_summary_verdict
 from mockdata.sample_data import (
     SAMPLE_ROADS,
     SAMPLE_SELECTED_ROAD,
     SAMPLE_SUPPORTING_DATA,
 )
 from ui.road_selector import render_road_selector
-
-
-def filter_criteria_results(criteria_results, criteria_scope):
-    """Return results matching the selected criteria scope."""
-    prefixes = {
-        "State": "S-",
-        "Regional": "R-",
-    }
-    prefix = prefixes.get(criteria_scope)
-
-    if prefix is None:
-        return criteria_results
-
-    return [
-        result
-        for result in criteria_results
-        if result["criteria_id"].startswith(prefix)
-    ]
 
 
 def main():
@@ -56,42 +37,31 @@ def main():
     lga = selected_road.get("lga") or "Not available"
     length_km = selected_road.get("length_km")
     length_label = (
-        f"{float(length_km):.2f} km"
+        f"{float(length_km):.1f} km"
         if isinstance(length_km, (int, float))
         else "Not available"
     )
 
     with st.container(border=True):
-        st.caption("SELECTED ROAD")
         st.subheader(road_name)
 
-        road_details = st.columns(4)
+        road_details = st.columns(3)
         road_details[0].metric("Road number", road_number)
         road_details[1].metric("Current category", current_category)
-        road_details[2].metric("LGA", lga)
-        road_details[3].metric("Segment length", length_label)
+        road_details[2].metric("Segment length", length_label)
 
-    st.markdown("### Assessment scope")
-    st.caption("Choose which criteria set to apply to the selected road.")
-    criteria_scope = st.segmented_control(
-        "Criteria set",
-        options=["All", "State", "Regional"],
-        default="All",
-        selection_mode="single",
-        label_visibility="collapsed",
-        help=(
-            "State includes S- criteria, Regional includes R- criteria, and "
-            "All includes every registered criterion."
-        ),
-    ) or "All"
+        st.markdown("**LGAs**")
+        st.write(lga)
 
-    selected_results = filter_criteria_results(criteria_results, criteria_scope)
-    summary_verdict = create_summary_verdict(selected_results)
-
-    st.divider()
+    default_scope = (
+        current_category
+        if current_category in {"State", "Regional"}
+        else "All"
+    )
     display_results(
-        selected_results,
-        summary_verdict,
+        criteria_results,
+        default_scope=default_scope,
+        road_id=selected_road.get("road_id", "selected-road"),
     )
 
 
