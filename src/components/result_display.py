@@ -181,24 +181,24 @@ def display_results(criteria_results, default_scope="All", road_id="selected-roa
         key=scope_key,
     )
 
-    st.caption(
-        "🟢 Met · 🔴 Not met · 🟠 Review required · "
-        "⚪ Evidence unavailable · ◆ Mandatory"
-    )
-
-    filter_cols = st.columns([2, 1])
     status_options = list(STATUS_LABELS)
-    selected_statuses = filter_cols[0].multiselect(
-        "Status",
-        options=status_options,
+    mandatory_filter = "mandatory_only"
+    filter_options = status_options + [mandatory_filter]
+    selected_filters = st.multiselect(
+        "Filters",
+        options=filter_options,
         default=status_options,
-        format_func=lambda status: STATUS_LABELS[status],
-        placeholder="Filter by status",
+        format_func=lambda option: (
+            "Mandatory only"
+            if option == mandatory_filter
+            else STATUS_LABELS[option]
+        ),
+        placeholder="Filter criteria",
     )
-    mandatory_only = filter_cols[1].toggle(
-        "Mandatory only",
-        value=False,
-    )
+    selected_statuses = [
+        option for option in selected_filters if option in status_options
+    ]
+    mandatory_only = mandatory_filter in selected_filters
 
     visible_results = sorted(
         (
@@ -214,16 +214,16 @@ def display_results(criteria_results, default_scope="All", road_id="selected-roa
         ),
     )
 
-    st.caption(
-        f"Showing {len(visible_results)} of {len(scoped_results)} criteria. "
-        "Items needing attention are shown first."
-    )
-
     if not visible_results:
         st.info(
             "No criteria match the selected filters. Clear a filter to see results."
         )
         return
+
+    st.caption(
+        "🟢 Met · 🔴 Not met · 🟠 Review required · "
+        "⚪ Evidence unavailable · ◆ Mandatory"
+    )
 
     table_rows = [
         {
@@ -253,6 +253,11 @@ def display_results(criteria_results, default_scope="All", road_id="selected-roa
             "Status": st.column_config.TextColumn(width="medium"),
             "Mandatory": st.column_config.TextColumn(width="small"),
         },
+    )
+
+    st.caption(
+        f"Showing {len(visible_results)} of {len(scoped_results)} criteria. "
+        "Items needing attention are shown first."
     )
 
     selected_rows = table_event.selection.rows
